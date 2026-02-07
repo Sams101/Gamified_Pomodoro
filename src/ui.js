@@ -1,11 +1,13 @@
 import { drawPointsChart } from "./chart.js";
 import { SCORING, pointsRuleText } from "./scoring.js";
 import { isDialogSupported } from "./utils.js";
+import { changePassword, updateProfile } from "./auth.js";
 
 export function wireUI({
   timer,
   api,
   getState,
+  setSession,
   setActiveTask,
   openTaskEditor,
   markActiveTaskComplete,
@@ -13,7 +15,8 @@ export function wireUI({
   saveSettings,
   setRange,
   openSettings,
-  testAlarm
+  testAlarm,
+  onSignOut
 }) {
   const els = {
     totalPoints: document.getElementById("totalPoints"),
@@ -29,9 +32,20 @@ export function wireUI({
     newTaskBtn: document.getElementById("newTaskBtn"),
     markTaskCompleteBtn: document.getElementById("markTaskCompleteBtn"),
     deleteTaskBtn: document.getElementById("deleteTaskBtn"),
-    openSettingsBtn: document.getElementById("openSettingsBtn"),
+    signInBtn: document.getElementById("signInBtn"),
+    profileWrap: document.getElementById("profileWrap"),
+    profileBtn: document.getElementById("profileBtn"),
+    profileMenu: document.getElementById("profileMenu"),
+    profileName: document.getElementById("profileName"),
+    profileEmail: document.getElementById("profileEmail"),
+    profileSettingsBtn: document.getElementById("profileSettingsBtn"),
+    signOutBtn: document.getElementById("signOutBtn"),
     settingsDialog: document.getElementById("settingsDialog"),
     settingsForm: document.getElementById("settingsDialogForm"),
+    profileFieldset: document.getElementById("profileFieldset"),
+    updateProfileBtn: document.getElementById("updateProfileBtn"),
+    changePasswordBtn: document.getElementById("changePasswordBtn"),
+    profileStatus: document.getElementById("profileStatus"),
     closeSettingsDialogBtn: document.getElementById("closeSettingsDialogBtn"),
     testSoundBtn: document.getElementById("testSoundBtn"),
     pointsRule: document.getElementById("pointsRule"),
@@ -42,20 +56,104 @@ export function wireUI({
     rangeAll: document.getElementById("rangeAll")
   };
 
+  const missing = Object.entries(els)
+    .filter(([, v]) => !v)
+    .map(([k]) => k);
+  if (missing.length) {
+    throw new Error(`Missing required UI elements: ${missing.join(", ")}`);
+  }
+
   els.pointsRule.textContent = pointsRuleText();
+
+  function toggleTimerGuarded() {
+    const { activeTask } = getState();
+    const isStartingWork = !timer.isRunning && timer.phase === "work";
+    if (isStartingWork && !activeTask) {
+      alert("Select a task before starting a work session.");
+      return;
+    }
+    timer.toggle();
+  }
 
   els.newTaskBtn.addEventListener("click", () => openTaskEditor());
   els.markTaskCompleteBtn.addEventListener("click", () => markActiveTaskComplete());
   els.deleteTaskBtn.addEventListener("click", () => deleteActiveTask());
 
-  els.openSettingsBtn.addEventListener("click", () => openSettings());
+  function closeProfileMenu() {
+    els.profileMenu.hidden = true;
+    els.profileBtn?.setAttribute("aria-expanded", "false");
+  }
+
+  function toggleProfileMenu() {
+    const open = !els.profileMenu.hidden;
+    if (open) closeProfileMenu();
+    else {
+      els.profileMenu.hidden = false;
+      els.profileBtn?.setAttribute("aria-expanded", "true");
+    }
+  }
+
+  els.profileBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleProfileMenu();
+  });
+  document.addEventListener("click", () => closeProfileMenu());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeProfileMenu();
+  });
+
+  els.profileSettingsBtn?.addEventListener("click", () => {
+    closeProfileMenu();
+    openSettings();
+  });
+  els.signOutBtn?.addEventListener("click", () => {
+    closeProfileMenu();
+    onSignOut?.();
+  });
+
+  function setProfileStatus(msg) {
+    els.profileStatus.textContent = msg ? String(msg) : "";
+  }
+
+  els.updateProfileBtn?.addEventListener("click", async () => {
+    setProfileStatus("");
+    try {
+      const fd = new FormData(els.settingsForm);
+      const displayName = String(fd.get("displayName") || "").trim();
+      const nextSession = await updateProfile({ displayName });
+      setProfileStatus("Name updated.");
+      setSession?.(nextSession);
+      renderAll();
+    } catch (err) {
+      setProfileStatus(err?.message || "Failed to update name.");
+    }
+  });
+
+  els.changePasswordBtn?.addEventListener("click", async () => {
+    setProfileStatus("");
+    try {
+      const fd = new FormData(els.settingsForm);
+      const currentPassword = String(fd.get("currentPassword") || "");
+      const newPassword = String(fd.get("newPassword") || "");
+      const confirmNewPassword = String(fd.get("confirmNewPassword") || "");
+      if (newPassword !== confirmNewPassword) throw new Error("New passwords do not match.");
+      await changePassword({ currentPassword, newPassword });
+      els.settingsForm.currentPassword.value = "";
+      els.settingsForm.newPassword.value = "";
+      els.settingsForm.confirmNewPassword.value = "";
+      setProfileStatus("Password changed.");
+    } catch (err) {
+      setProfileStatus(err?.message || "Failed to change password.");
+    }
+  });
+
   els.closeSettingsDialogBtn.addEventListener("click", () => els.settingsDialog.close("cancel"));
   els.testSoundBtn.addEventListener("click", () => {
     const fd = new FormData(els.settingsForm);
     testAlarm(String(fd.get("alarmSound") || ""));
   });
 
-  els.startPauseBtn.addEventListener("click", () => timer.toggle());
+  els.startPauseBtn.addEventListener("click", () => toggleTimerGuarded());
   els.resetBtn.addEventListener("click", () => api.resetTimer());
   els.skipBreakBtn.addEventListener("click", () => api.skipBreak());
 
@@ -63,7 +161,7 @@ export function wireUI({
     if (e.target && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
     if (e.key === " " || e.code === "Space") {
       e.preventDefault();
-      timer.toggle();
+      toggleTimerGuarded();
     } else if (e.key.toLowerCase() === "r") {
       e.preventDefault();
       api.resetTimer();
@@ -77,6 +175,7 @@ export function wireUI({
     e.preventDefault();
     const fd = new FormData(els.settingsForm);
     await saveSettings({
+      theme: String(fd.get("theme") || "midnight"),
       workMinutes: Number(fd.get("workMinutes")),
       shortBreakMinutes: Number(fd.get("shortBreakMinutes")),
       longBreakMinutes: Number(fd.get("longBreakMinutes")),
@@ -112,7 +211,8 @@ export function wireUI({
       const sub = document.createElement("div");
       sub.className = "task-sub";
       const planned = task.plannedPomodoros || 0;
-      const progress = planned > 0 ? `${task.completedPomodoros}/${planned}` : `${task.completedPomodoros} done`;
+      const completed = task.completedPomodoros ?? 0;
+      const progress = planned > 0 ? `${completed}/${planned}` : `${completed} done`;
       const override = task.workMinutesOverride ? ` • ${task.workMinutesOverride}m work` : "";
       sub.textContent = `${progress}${override}`;
       left.appendChild(title);
@@ -165,13 +265,23 @@ export function wireUI({
   }
 
   function renderSettingsForm() {
-    const { settings } = getState();
+    const { settings, session } = getState();
+    if (els.settingsForm.theme) els.settingsForm.theme.value = settings.theme || "midnight";
     els.settingsForm.workMinutes.value = settings.workMinutes;
     els.settingsForm.shortBreakMinutes.value = settings.shortBreakMinutes;
     els.settingsForm.longBreakMinutes.value = settings.longBreakMinutes;
     els.settingsForm.longBreakInterval.value = settings.longBreakInterval;
     els.settingsForm.soundEnabled.checked = Boolean(settings.soundEnabled);
     els.settingsForm.alarmSound.value = settings.alarmSound || "chime";
+
+    const signedIn = Boolean(session?.userId);
+    els.profileFieldset.hidden = !signedIn;
+    if (signedIn) {
+      els.settingsForm.displayName.value = session.displayName || "";
+    } else {
+      els.settingsForm.displayName.value = "";
+      setProfileStatus("");
+    }
   }
 
   function renderInsights() {
@@ -202,6 +312,15 @@ export function wireUI({
     renderInsights();
     els.markTaskCompleteBtn.disabled = !getState().activeTask;
     els.deleteTaskBtn.disabled = !getState().activeTask;
+
+    const { session } = getState();
+    const signedIn = Boolean(session?.userId);
+    els.signInBtn.hidden = signedIn;
+    els.profileWrap.hidden = !signedIn;
+    if (signedIn) {
+      els.profileName.textContent = session.displayName || "Account";
+      els.profileEmail.textContent = session.email || "";
+    }
   }
 
   timer.addEventListener("tick", () => renderTimer());

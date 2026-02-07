@@ -1,15 +1,39 @@
-import { DB } from "./db.js";
+import { createDB } from "./db.js";
 import { PomodoroTimer, PHASE } from "./timer.js";
 import { SCORING, getTodayKey } from "./scoring.js";
 import { DEFAULT_SETTINGS, normalizeSettings } from "./settings.js";
 import { playAlarm } from "./sounds.js";
-import { asInt, clampNumber, isDialogSupported, localDateKey } from "./utils.js";
+import { asInt, clampNumber, isDialogSupported, localDateKey, safeUUID } from "./utils.js";
 import { wireUI } from "./ui.js";
+import { getSession, signOut } from "./auth.js";
+
+function getGuestInstanceId() {
+  try {
+    const existing = localStorage.getItem("pq_guest_instance_v1");
+    if (existing) return existing;
+    const next = safeUUID();
+    localStorage.setItem("pq_guest_instance_v1", next);
+    return next;
+  } catch {
+    return safeUUID();
+  }
+}
+
+function resetGuestInstanceId() {
+  try {
+    localStorage.setItem("pq_guest_instance_v1", safeUUID());
+  } catch {}
+}
+
+const session = getSession();
+const dbName = session ? `pomodoro-quest:${session.userId}` : `pomodoro-quest:guest:${getGuestInstanceId()}`;
+const DB = createDB(dbName);
 
 const state = {
   settings: { ...DEFAULT_SETTINGS },
   tasks: [],
   activeTask: null,
+  session,
   todayPoints: 0,
   dailyRows: [],
   range: "7"
@@ -101,8 +125,16 @@ async function openTaskEditor(task = null) {
   form.workMinutesOverride.value = String(task?.workMinutesOverride ?? 0);
 
   const cancelBtn = document.getElementById("cancelTaskDialogBtn");
+  const cleanup = () => {
+    form.removeEventListener("submit", onSubmit);
+    cancelBtn.removeEventListener("click", onCancel);
+    dialog.removeEventListener("close", onDialogClose);
+  };
+
   const onCancel = () => dialog.close("cancel");
-  cancelBtn.addEventListener("click", onCancel, { once: true });
+  const onDialogClose = () => cleanup();
+  cancelBtn.addEventListener("click", onCancel);
+  dialog.addEventListener("close", onDialogClose);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -120,7 +152,7 @@ async function openTaskEditor(task = null) {
       workMinutesOverride
     });
     dialog.close("confirm");
-    form.removeEventListener("submit", onSubmit);
+    cleanup();
     await reloadTasksKeepActive(saved.id);
   };
   form.addEventListener("submit", onSubmit);
@@ -164,7 +196,8 @@ async function deleteActiveTask() {
 async function saveSettings(next) {
   const normalized = normalizeSettings({ ...state.settings, ...next });
   state.settings = normalized;
-  for (const [k, v] of Object.entries(next)) await DB.setSetting(k, v);
+  for (const k of Object.keys(next)) await DB.setSetting(k, normalized[k]);
+  if (Object.prototype.hasOwnProperty.call(next, "theme")) applyTheme(normalized.theme);
   timer.resetToWork(durationsForActiveTask().workMinutes);
   ui.renderAll();
 }
@@ -279,15 +312,6 @@ function registerServiceWorker() {
   });
 }
 
-function guardActiveTaskForWorkStart() {
-  timer.addEventListener("state", () => {
-    if (timer.isRunning && timer.phase === PHASE.WORK && !state.activeTask) {
-      timer.pause();
-      alert("Select a task before starting a work session.");
-    }
-  });
-}
-
 function applyTitleTick() {
   timer.addEventListener("tick", () => {
     const phase = timer.phase === "work" ? "Work" : timer.phase === "shortBreak" ? "Break" : "Long break";
@@ -295,9 +319,18 @@ function applyTitleTick() {
   });
 }
 
+function applyTheme(themeId) {
+  const theme = String(themeId || "midnight");
+  document.documentElement.dataset.theme = theme;
+  try {
+    localStorage.setItem("pq_theme_v1", theme);
+  } catch {}
+}
+
 let ui;
 async function boot() {
   await loadFromDb();
+  applyTheme(state.settings.theme);
 
   // Initialize timer display.
   timer.resetToWork(durationsForActiveTask().workMinutes);
@@ -306,6 +339,9 @@ async function boot() {
     timer,
     api,
     getState,
+    setSession: (nextSession) => {
+      state.session = nextSession;
+    },
     setActiveTask,
     openTaskEditor,
     markActiveTaskComplete,
@@ -322,17 +358,25 @@ async function boot() {
       ui.renderAll();
       dialog.showModal();
     },
-    testAlarm
+    testAlarm,
+    onSignOut: () => {
+      signOut();
+      resetGuestInstanceId();
+      window.location.reload();
+    }
   });
 
   ui.renderAll();
 
   registerServiceWorker();
-  guardActiveTaskForWorkStart();
   applyTitleTick();
 }
 
 boot().catch((err) => {
   console.error(err);
-  alert("Failed to start app. Check console for details.");
+  const details =
+    (err && (err.stack || err.message)) ||
+    (typeof err === "string" ? err : "") ||
+    "Unknown error";
+  alert(`Failed to start app.\n\n${String(details).slice(0, 1200)}\n\n(See console for full details.)`);
 });

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Create account • Pomodoro Quest</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="auth-layout">
+      <section class="auth-card" aria-label="Create account">
+        <div class="auth-header">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true">⏱</span>
+            <div class="brand-text">
+              <div class="brand-title">Create account</div>
+              <div class="brand-subtitle">Accounts are stored locally on this device (offline-first).</div>
+            </div>
+          </div>
+        </div>
+
+        <form id="signUpForm" class="auth-form">
+          <label>
+            Name
+            <input name="displayName" type="text" autocomplete="name" maxlength="60" />
+          </label>
+          <label>
+            Email
+            <input name="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="new-password" required />
+          </label>
+          <label>
+            Confirm password
+            <input name="confirmPassword" type="password" autocomplete="new-password" required />
+          </label>
+
+          <div class="auth-hint small">Password must be 8+ chars and include letters + numbers.</div>
+          <div class="auth-error" id="signUpError" role="alert" aria-live="polite"></div>
+
+          <div class="auth-actions">
+            <a class="btn" href="./signin.html">Back</a>
+            <button class="btn btn-primary" type="submit">Create account</button>
+          </div>
+
+          <p class="small">
+            Already have an account? <a href="./signin.html">Sign in</a>.
+          </p>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="./src/signup.js"></script>
+  </body>
+</html>
+

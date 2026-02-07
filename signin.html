@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Sign in • Pomodoro Quest</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="auth-layout">
+      <section class="auth-card" aria-label="Sign in">
+        <div class="auth-header">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true">⏱</span>
+            <div class="brand-text">
+              <div class="brand-title">Pomodoro Quest</div>
+              <div class="brand-subtitle">Sign in to save data to your profile on this device.</div>
+            </div>
+          </div>
+        </div>
+
+        <form id="signInForm" class="auth-form">
+          <label>
+            Email
+            <input name="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="current-password" required />
+          </label>
+
+          <div class="auth-error" id="signInError" role="alert" aria-live="polite"></div>
+
+          <div class="auth-actions">
+            <a class="btn" href="./index.html">Back</a>
+            <button class="btn btn-primary" type="submit">Sign in</button>
+          </div>
+
+          <p class="small">
+            Don’t have an account? <a href="./signup.html">Create one</a>.
+          </p>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="./src/signin.js"></script>
+  </body>
+</html>
+

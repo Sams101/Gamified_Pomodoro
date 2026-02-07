@@ -1,13 +1,17 @@
 /* Offline-first app-shell cache (no network calls are required for core UX). */
-const CACHE_NAME = "pomodoro-quest-v1";
+const CACHE_NAME = "pomodoro-quest-v4";
 
 const ASSETS = [
   "./",
   "./index.html",
+  "./about.html",
+  "./signin.html",
+  "./signup.html",
   "./styles.css",
   "./manifest.json",
   "./assets/icon.svg",
   "./src/main.js",
+  "./src/auth.js",
   "./src/db.js",
   "./src/timer.js",
   "./src/scoring.js",
@@ -15,6 +19,8 @@ const ASSETS = [
   "./src/chart.js",
   "./src/settings.js",
   "./src/sounds.js",
+  "./src/signin.js",
+  "./src/signup.js",
   "./src/utils.js"
 ];
 

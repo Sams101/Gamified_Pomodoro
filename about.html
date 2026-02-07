@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>About • Pomodoro Quest</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      try {
+        var t = localStorage.getItem("pq_theme_v1");
+        if (t) document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="app-header" role="banner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">⏱</span>
+        <div class="brand-text">
+          <div class="brand-title">Pomodoro Quest</div>
+          <div class="brand-subtitle">About this app</div>
+        </div>
+      </div>
+
+      <nav class="top-nav spread" aria-label="App">
+        <a class="btn btn-nav" href="./index.html">Back to app</a>
+        <a class="btn btn-nav" href="./signin.html">Sign in</a>
+      </nav>
+    </header>
+
+    <main id="main" class="auth-layout" role="main">
+      <section class="auth-card" aria-label="About Pomodoro Quest">
+        <h2>How it works</h2>
+        <p class="small">
+          Pomodoro Quest is an offline-first Pomodoro timer paired with task tracking and simple points-based motivation.
+        </p>
+
+        <h2>Tasks</h2>
+        <p class="small">
+          Create tasks with planned pomodoros. Select a task before starting a work session so your completed pomodoros
+          count toward that task.
+        </p>
+
+        <h2>Timer</h2>
+        <p class="small">
+          The timer cycles through Work → Short break, and schedules a Long break every N pomodoros (configurable in
+          Settings).
+        </p>
+
+        <h2>Points & analytics</h2>
+        <p class="small">
+          Completing a work session awards points and records a daily total so you can see your trend over time.
+        </p>
+
+        <h2>Accounts (optional)</h2>
+        <p class="small">
+          You can use the app without signing in. If you create an account and sign in, your tasks, settings, and
+          analytics are stored under your profile on this device. This build does not sync to a server.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

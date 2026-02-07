@@ -21,10 +21,6 @@
         </div>
       </div>
 
-      <nav class="top-nav" aria-label="App">
-        <button class="btn btn-nav" id="openSettingsBtn" type="button">Settings</button>
-      </nav>
-
       <div class="scoreboard" aria-label="Points">
         <div class="score">
           <div class="score-label">Total</div>
@@ -35,6 +31,25 @@
           <div class="score-value" id="todayPoints">0</div>
         </div>
       </div>
+
+      <nav class="top-nav" aria-label="App">
+        <a class="btn btn-nav" href="./about.html">About</a>
+        <a class="btn btn-nav" id="signInBtn" href="./signin.html">Sign in</a>
+
+        <div class="profile" id="profileWrap" hidden>
+          <button class="btn btn-nav profile-btn" id="profileBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Profile menu">
+            <span class="profile-icon" aria-hidden="true">👤</span>
+          </button>
+          <div class="profile-menu" id="profileMenu" role="menu" aria-label="Profile" hidden>
+            <div class="profile-meta">
+              <div class="profile-name" id="profileName">Account</div>
+              <div class="profile-email" id="profileEmail">—</div>
+            </div>
+            <button class="profile-item" id="profileSettingsBtn" type="button" role="menuitem">Settings</button>
+            <button class="profile-item danger" id="signOutBtn" type="button" role="menuitem">Sign out</button>
+          </div>
+        </div>
+      </nav>
     </header>
 
     <main id="main" class="layout" role="main">
@@ -131,6 +146,48 @@
           <h3>Settings</h3>
           <button class="btn" value="cancel" type="button" id="closeSettingsDialogBtn">Close</button>
         </div>
+
+        <fieldset id="profileFieldset" hidden>
+          <legend>Profile</legend>
+          <label>
+            Name
+            <input name="displayName" type="text" maxlength="60" />
+          </label>
+          <div class="settings-actions">
+            <button class="btn" id="updateProfileBtn" type="button">Update name</button>
+          </div>
+
+          <label class="stack">
+            Current password
+            <input name="currentPassword" type="password" autocomplete="current-password" />
+          </label>
+          <label class="stack">
+            New password
+            <input name="newPassword" type="password" autocomplete="new-password" />
+          </label>
+          <label class="stack">
+            Confirm new password
+            <input name="confirmNewPassword" type="password" autocomplete="new-password" />
+          </label>
+          <div class="settings-actions">
+            <button class="btn" id="changePasswordBtn" type="button">Change password</button>
+          </div>
+          <p class="small" id="profileStatus" aria-live="polite"></p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Appearance</legend>
+          <label>
+            Colour theme
+            <select name="theme">
+              <option value="midnight">Midnight</option>
+              <option value="light">Light</option>
+              <option value="ocean">Ocean</option>
+              <option value="forest">Forest</option>
+              <option value="sunset">Sunset</option>
+            </select>
+          </label>
+        </fieldset>
 
         <fieldset>
           <legend>Durations (minutes)</legend>
